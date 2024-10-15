@@ -1,9 +1,8 @@
 import { Webhook } from 'svix'
 import { headers } from 'next/headers'
-import { WebhookEvent } from '@clerk/nextjs/server'
-import { createUser, deleteUser, updateUser } from '@/lib/actions/user.action'
-import { clerkClient } from '@clerk/nextjs/server'
+import { clerkClient, WebhookEvent } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { createUser, deleteUser, updateUser } from '@/lib/actions/user.action'
  
 export async function POST(req: Request) {
  
@@ -55,12 +54,14 @@ export async function POST(req: Request) {
   const eventType = evt.type;
  
   if(eventType === 'user.created') {
-    const { id, email_addresses, first_name, last_name } = evt.data;
+    const { id, email_addresses, image_url,username, first_name, last_name } = evt.data;
 
     const user = {
       clerkId: id,
+      username: username,
       email: email_addresses[0].email_address,
       name: `${first_name} ${last_name}`,
+      photo: image_url,
     }
 
     const newUser = await createUser(user);
@@ -77,10 +78,11 @@ export async function POST(req: Request) {
   }
 
   if (eventType === 'user.updated') {
-    const {id, first_name, last_name } = evt.data
+    const {id, image_url, first_name, last_name } = evt.data
 
     const user = {
       name: `${first_name} ${last_name}`,
+      photo: image_url,
     }
 
     const updatedUser = await updateUser(id, user)
