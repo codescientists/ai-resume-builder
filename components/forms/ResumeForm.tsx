@@ -1,14 +1,14 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Form, FormControl, FormField, FormItem } from '@/components/ui/form'
+import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import * as z from 'zod'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Button } from "@/components/ui/button"
 import { GradientPicker } from "../ui/color-picker"
-import { ArrowRightCircle } from "lucide-react"
+import { ArrowLeftCircle, ArrowRightCircle, SaveIcon } from "lucide-react"
 import toast from "react-hot-toast"
 import PersonalDetails from "./PersonalDetails"
 import SummaryForm from "./SummaryForm"
@@ -16,15 +16,18 @@ import ProfessionalExperience from "./ProfessionalExperience"
 import Education from "./Education"
 import Skills from "./Skills"
 import ResumeDesign from "../resume-templates/ResumeDesign"
+import { Input } from "../ui/input"
+import { updateResume } from "@/lib/actions/resume.action"
 
 export const resumeFormSchema = z.object({
-  firstName: z.string().min(3, 'First Name must be at least 3 characters'),
-  lastName: z.string().min(3, 'Last Name must be at least 3 characters'),
-  jobTitle: z.string(),
-  address: z.string(),
-  phone: z.string(),
-  email: z.string(),
-  summary: z.string(),
+  resumeTitle: z.string(),
+  firstName: z.string().min(3, 'First Name must be at least 3 characters').optional(),
+  lastName: z.string().min(3, 'Last Name must be at least 3 characters').optional(),
+  jobTitle: z.string().optional(),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  summary: z.string().optional(),
   professionalExperience: z.array(z.object({ 
     positionTitle: z.string(),
     companyName: z.string(),
@@ -46,10 +49,11 @@ export const resumeFormSchema = z.object({
     name: z.string(),
     progress: z.number(),
   })).optional(),
-  theme: z.string(),
+  theme: z.string().optional(),
 });
 
 export const resumeDefaultValues = {
+  resumeTitle: "resume 1",
   firstName: "John",
   lastName: "Doe",
   jobTitle: "Full Stack Developer",
@@ -153,14 +157,28 @@ const ResumeForm = ({ type, resume, resumeId, userId }: ResumeFormProps) => {
       }
     }
 
-    if (type === 'Update') {
+    if (type === 'Update') {      
       if (!resumeId) {
         router.back();
         return;
       }
 
       try {
-        toast.success("Updated!")
+        await updateResume(resumeId, {
+          firstName: values.firstName,
+          lastName: values.lastName,
+          jobTitle: values.jobTitle,
+          address: values.address,
+          phone: values.phone,
+          email: values.email,
+          summary: values.summary,
+          professionalExperience: values.professionalExperience,
+          education: values.education,
+          skills: values.skills, 
+          theme: values.theme, 
+        })
+
+        toast.success("Saved!")
       } catch (error) {
         console.log(error);
       }
@@ -183,29 +201,45 @@ const ResumeForm = ({ type, resume, resumeId, userId }: ResumeFormProps) => {
               {/* Theme & Step Navigation */}
               <div className="flex justify-between border-b-2 border-b-orange-400 pb-4">
                 <div className="flex items-center justify-center">
-                  <FormField
-                    control={form.control}
-                    name="theme"
-                    render={({ field }) => (
-                      <FormItem className="w-full">
-                        <FormControl>
-                          <GradientPicker
-                            className="w-full"
-                            background={field.value}
-                            setBackground={field.onChange}
-                            setColor={setColor}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="flex items-center space-x-4">
+                    <FormField
+                        control={form.control}
+                        name="resumeTitle"
+                        render={({ field }) => (
+                        <FormItem className="w-full">
+                            <FormControl>
+                            <Input placeholder="Resume Title" {...field} className="w-full px-4 py-2 outline-none focus:outline-none" />
+                            </FormControl>
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="theme"
+                      render={({ field }) => (
+                        <FormItem className="w-full">
+                          <FormControl>
+                            <GradientPicker
+                              className="w-full"
+                              background={field.value}
+                              setBackground={field.onChange}
+                              setColor={setColor}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-center space-x-2">
                   {step > 1 && (
-                    <Button onClick={handlePrevStep} type="button" variant="outline">
-                      Previous
+                    <Button onClick={handlePrevStep} type="button" className="bg-orange-400 hover:bg-orange-500">
+                      <ArrowLeftCircle className="h-4 w-4"/>
                     </Button>
                   )}
+                  <Button type="submit" variant="outline" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting ? 'Saving...' : `Save`} <SaveIcon className="h-4 w-4 ml-2"/>
+                  </Button>
                   {step < 5 ? (
                     <Button onClick={handleNextStep} type="button" className="bg-orange-400 hover:bg-orange-500">
                       Next <ArrowRightCircle className="h-4 w-4 ml-2"/>
